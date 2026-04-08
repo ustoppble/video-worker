@@ -1,0 +1,19 @@
+{
+  "name": "video-worker",
+  "version": "0.1.0",
+  "description": "Transforma lives YouTube em Shorts automaticamente",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "process": "tsx src/cli.ts",
+    "lint": "eslint src/",
+    "health": "curl -s http://localhost:3200/health | jq"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "author": "ustoppble",
+  "license": "MIT"
+}
