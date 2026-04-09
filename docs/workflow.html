@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Worker — Pipeline de 8 Agentes IA | EMAILHACKER</title>
+  <meta name="description" content="Como o Video Worker transforma lives de 3 horas em 8 Shorts prontos pra postar. 8 agentes IA especializados. Zero esforço manual.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #000000;
+      --surface: rgba(0,0,0,0.5);
+      --surface-dark: rgba(0,0,0,0.4);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.1);
+      --red-border: rgba(239,68,68,0.2);
+      --red-border-strong: rgba(239,68,68,0.3);
+      --red-glow: rgba(239,68,68,0.5);
+      --cyan: #06b6d4;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --purple: #c084fc;
+      --blue: #3b82f6;
+      --orange: #fb923c;
+      --pink: #ec4899;
+      --text: #ffffff;
+      --text-light: #e5e7eb;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --text-subtle: #4b5563;
+      --text-dim: #374151;
+      --border: rgba(239,68,68,0.2);
+      --border-gray: #1f2937;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Scanlines overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ─── HEADER ─── */
+    .header {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo svg { width: 24px; height: 24px; }
+    .logo-text {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.2em;
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+    }
+    .header-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 4px rgba(34,197,94,0.6);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      text-align: center;
+      padding: 40px 0 56px;
+    }
+    .hero-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--red);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .hero h1 {
+      font-size: clamp(24px, 5vw, 36px);
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--red);
+    }
+    .hero p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    /* ─── DIVIDER ─── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, rgba(239,68,68,0.4), rgba(239,68,68,0.1), transparent);
+      margin: 40px 0;
+    }
+
+    /* ─── STATS ROW ─── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--red-border-strong); }
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--red);
+    }
+    .stat-sub {
+      font-size: 10px;
+      color: var(--text-subtle);
+      margin-top: 4px;
+    }
+
+    /* ─── SECTION TITLE ─── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .section-icon {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--red-dim);
+      border: 1px solid var(--red-border);
+      border-radius: 8px;
+      position: relative;
+    }
+    .section-icon svg { width: 16px; height: 16px; color: var(--red); stroke: var(--red); }
+    .section-icon .pulse-dot {
+      position: absolute;
+      top: -2px; right: -2px;
+      width: 6px; height: 6px;
+      background: var(--red);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--red);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .section-subtitle {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    /* ─── PIPELINE FLOW ─── */
+    .pipeline-intro {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 32px;
+      max-width: 640px;
+    }
+    .pipeline-intro strong {
+      color: var(--text-light);
+    }
+
+    .flow-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-bottom: 48px;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 16px;
+      position: relative;
+    }
+
+    /* Vertical line */
+    .flow-step:not(:last-child) .flow-line-col::after {
+      content: '';
+      position: absolute;
+      left: 23px;
+      top: 48px;
+      bottom: -1px;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--red-border-strong), var(--border));
+    }
+
+    .flow-line-col {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      padding-top: 4px;
+    }
+
+    .flow-number {
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--red-dim);
+      border: 1px solid var(--red-border-strong);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--red);
+      z-index: 2;
+      position: relative;
+      transition: all 0.3s;
+    }
+    .flow-step:hover .flow-number {
+      border-color: var(--red);
+      box-shadow: 0 0 20px var(--red-glow);
+    }
+
+    .flow-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 12px;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .flow-step:hover .flow-content {
+      border-color: var(--red-border-strong);
+      background: rgba(0,0,0,0.6);
+    }
+
+    .flow-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-light);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .flow-role {
+      font-size: 10px;
+      color: var(--red);
+      opacity: 0.7;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+    .flow-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .flow-desc strong { color: var(--text-light); }
+    .flow-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .flow-tag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .tag-red { background: var(--red-dim); color: var(--red); border: 1px solid var(--red-border-strong); }
+    .tag-cyan { background: rgba(6,182,212,0.1); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3); }
+    .tag-green { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .tag-yellow { background: rgba(234,179,8,0.1); color: var(--yellow); border: 1px solid rgba(234,179,8,0.3); }
+    .tag-purple { background: rgba(192,132,252,0.1); color: var(--purple); border: 1px solid rgba(192,132,252,0.3); }
+    .tag-blue { background: rgba(59,130,246,0.1); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+    .tag-orange { background: rgba(251,146,60,0.1); color: var(--orange); border: 1px solid rgba(251,146,60,0.3); }
+    .tag-pink { background: rgba(236,72,153,0.1); color: var(--pink); border: 1px solid rgba(236,72,153,0.3); }
+
+    /* ─── TERMINAL DEMO ─── */
+    .terminal {
+      background: #050508;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 48px;
+    }
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--red-dim);
+    }
+    .terminal-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .terminal-dot.r { background: #ef4444; }
+    .terminal-dot.y { background: #eab308; }
+    .terminal-dot.g { background: #22c55e; }
+    .terminal-title {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      margin-left: 8px;
+    }
+    .terminal-body {
+      padding: 16px;
+      font-size: 11px;
+      line-height: 2;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .t-time { color: var(--cyan); }
+    .t-agent { color: var(--purple); }
+    .t-ok { color: var(--green); }
+    .t-data { color: var(--red); }
+    .t-msg { color: var(--text-secondary); }
+    .t-dim { color: var(--text-dim); }
+    .t-file { color: var(--yellow); }
+
+    /* ─── RESULT SECTION ─── */
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .result-card:hover {
+      border-color: var(--red-border-strong);
+    }
+    .result-thumb {
+      aspect-ratio: 9/16;
+      background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(6,182,212,0.05));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .result-thumb .play-icon {
+      width: 40px; height: 40px;
+      background: rgba(239,68,68,0.2);
+      border: 1px solid var(--red-border-strong);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .result-card:hover .play-icon {
+      background: rgba(239,68,68,0.4);
+      box-shadow: 0 0 20px var(--red-glow);
+    }
+    .result-thumb .duration {
+      position: absolute;
+      bottom: 8px; right: 8px;
+      font-size: 10px;
+      background: rgba(0,0,0,0.8);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--text);
+    }
+    .result-thumb .score {
+      position: absolute;
+      top: 8px; left: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+    .score-high { background: rgba(34,197,94,0.2); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .score-mid { background: rgba(234,179,8,0.2); color: var(--yellow); border: 1px solid rgba(234,179,8,0.3); }
+    .result-info { padding: 12px; }
+    .result-title {
+      font-size: 11px;
+      color: var(--text-light);
+      font-weight: 500;
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .result-source {
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+    .result-platforms {
+      display: flex; gap: 8px; margin-top: 8px;
+    }
+    .platform-icon {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .platform-ok { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+    .platform-pending { background: rgba(234,179,8,0.1); color: var(--yellow); border: 1px solid rgba(234,179,8,0.2); }
+
+    /* ─── HOW IT WORKS SECTION ─── */
+    .how-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    .how-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .how-card:hover {
+      border-color: var(--red-border-strong);
+    }
+    .how-number {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--red);
+      margin-bottom: 12px;
+    }
+    .how-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    .how-desc {
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* ─── BRIEFING BLOCK ─── */
+    .briefing {
+      border-left: 2px solid var(--red-border-strong);
+      padding-left: 16px;
+      margin-bottom: 40px;
+    }
+    .briefing-label {
+      font-size: 9px;
+      color: rgba(239,68,68,0.6);
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .briefing-text {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    .briefing-text strong { color: var(--text-light); }
+
+    /* ─── TECH STACK ─── */
+    .stack-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 48px;
+    }
+    .stack-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      border: 1px solid var(--border-gray);
+      color: var(--text-muted);
+      background: var(--surface-dark);
+      transition: all 0.2s;
+    }
+    .stack-badge:hover {
+      border-color: var(--text-subtle);
+      color: var(--text-secondary);
+    }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      text-align: center;
+      padding: 48px 0 64px;
+    }
+    .cta-section h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .cta-section p {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .cta-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--red);
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 14px 32px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .cta-button:hover {
+      background: #dc2626;
+      box-shadow: 0 0 30px var(--red-glow);
+      transform: translateY(-1px);
+    }
+
+    /* ─── FOOTER ─── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      text-align: center;
+    }
+    .footer-text {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+    .footer-text a {
+      color: var(--red);
+      text-decoration: none;
+      opacity: 0.6;
+    }
+    .footer-text a:hover { opacity: 1; }
+
+    /* ─── ANIMATION ─── */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeInUp 0.5s ease-out both;
+    }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+    .delay-6 { animation-delay: 0.6s; }
+    .delay-7 { animation-delay: 0.7s; }
+    .delay-8 { animation-delay: 0.8s; }
+
+    .typing-cursor {
+      display: inline-block;
+      width: 8px; height: 16px;
+      background: var(--red);
+      animation: pulse 1s step-end infinite;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .how-grid { grid-template-columns: 1fr; }
+      .result-grid { grid-template-columns: repeat(2, 1fr); }
+      .flow-step { grid-template-columns: 36px 1fr; gap: 12px; }
+      .flow-number { width: 36px; height: 36px; font-size: 12px; border-radius: 8px; }
+      .flow-step:not(:last-child) .flow-line-col::after { left: 17px; top: 36px; }
+      .flow-content { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-inner">
+      <a href="https://emailhacker.ai" class="logo">
+        <svg viewBox="0 0 565.92 565.33">
+          <g>
+            <rect fill="#ef4444" x="295.78" y="497.14" width="28.15" height="68.19"/>
+            <rect fill="#ef4444" x="227.49" y="497.14" width="28.15" height="68.19"/>
+            <rect fill="#ef4444" x="364.07" width="28.15" height="68.19"/>
+            <rect fill="#ef4444" x="227.49" width="28.15" height="68.19"/>
+            <path fill="#ef4444" d="M471.35,166.15v-56.81c0-8.31-6.76-15.08-15.08-15.08h-132.35V0h-28.15v94.27h-108.43V0h-28.15v94.27h-49.55c-8.31,0-15.08,6.76-15.08,15.08v56.81H0v28.15h94.56v108.43H0v28.15h94.56v40.14H0v28.15h94.56v56.8c0,8.31,6.76,15.08,15.08,15.08h49.55v94.27h28.15v-94.27h176.72v94.27h28.15v-94.27h64.05c8.31,0,15.08-6.76,15.08-15.08v-125.1h94.56v-28.15h-94.56v-108.43h94.56v-28.15h-94.56ZM130.37,112.3c10.45,0,18.92,8.47,18.92,18.92s-8.47,18.92-18.92,18.92-18.92-8.47-18.92-18.92,8.47-18.92,18.92-18.92ZM340.4,341.41c-3.27-1.83-7.85-8.19-9.62-8.33-2.53-.19-14.96,10.17-19.72,12.17-58.13,24.46-117.03-33.7-91.49-91.25,24.08-54.27,104.64-53.84,127.15.23,6.27,15.05,3.08,50.53,11.74,57.58,14.91,12.13,29.18-2.72,29.22-19.7.34-149.3-201.84-144.48-208.73-16.26-2.96,55.13,44.24,109.83,100.83,109.83,0,0,51.76.42,65.97-21.53,15.99,6.87,24.03,7.4,37.32,6.57-27.88,47.93-82.54,51.56-122.55,46.28-100.32-13.24-151.36-133.34-89.39-215.93,82.1-109.42,249.99-50.48,251.27,86.4.46,48.38-36.51,79.34-82.01,53.94Z"/>
+            <rect fill="#ef4444" x="497.72" y="234.44" width="68.19" height="28.15"/>
+            <rect fill="#ef4444" x="497.72" y="371.03" width="68.19" height="28.19"/>
+            <rect fill="#ef4444" y="234.44" width="68.19" height="28.15"/>
+            <path fill="#ef4444" d="M282.65,246.26c-19.77,0-35.8,15.99-35.8,35.7s16.03,35.7,35.8,35.7,35.8-15.98,35.8-35.7-16.03-35.7-35.8-35.7Z"/>
+          </g>
+        </svg>
+        <span class="logo-text">EMAILHACKER</span>
+      </a>
+      <div class="header-badge">
+        <span class="dot"></span>
+        VIDEO WORKER
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero animate-in">
+    <span class="hero-label">Workflow de Sessao — 8 Agentes IA</span>
+    <h1>Uma live de 3 horas vira<br><em>8 Shorts prontos pra postar.</em></h1>
+    <p>
+      Voce cola o link do canal. O Video Worker transcreve, analisa, corta, renderiza, legenda e publica — tudo automatico. Cada agente e especialista em uma etapa. Zero esforco manual.
+    </p>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card animate-in delay-1">
+      <div class="stat-label">Input</div>
+      <div class="stat-value">1</div>
+      <div class="stat-sub">live de qualquer duracao</div>
+    </div>
+    <div class="stat-card animate-in delay-2">
+      <div class="stat-label">Output</div>
+      <div class="stat-value">8</div>
+      <div class="stat-sub">clips verticais 9:16</div>
+    </div>
+    <div class="stat-card animate-in delay-3">
+      <div class="stat-label">Tempo por clip</div>
+      <div class="stat-value">~4m</div>
+      <div class="stat-sub">do zero ao publicado</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- HOW IT WORKS (3 steps) -->
+  <div class="section-header">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+      <span class="pulse-dot"></span>
+    </div>
+    <div>
+      <div class="section-title">Como Funciona</div>
+      <div class="section-subtitle">3 passos — zero configuracao</div>
+    </div>
+  </div>
+
+  <div class="how-grid">
+    <div class="how-card animate-in delay-1">
+      <div class="how-number">01</div>
+      <div class="how-label">Cole o Link</div>
+      <div class="how-desc">URL do canal YouTube. O worker detecta todos os videos automaticamente.</div>
+    </div>
+    <div class="how-card animate-in delay-2">
+      <div class="how-number">02</div>
+      <div class="how-label">8 Agentes Processam</div>
+      <div class="how-desc">Pipeline sequencial. Cada agente IA e especialista em uma tarefa.</div>
+    </div>
+    <div class="how-card animate-in delay-3">
+      <div class="how-number">03</div>
+      <div class="how-label">Shorts Prontos</div>
+      <div class="how-desc">Clips verticais com legendas, score de viralidade e publicacao automatica.</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- PIPELINE SECTION -->
+  <div class="section-header">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18a4 4 0 0 0-8 0"/><circle cx="12" cy="11" r="3"/><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="2" x2="22" y1="2" y2="2"/></svg>
+      <span class="pulse-dot"></span>
+    </div>
+    <div>
+      <div class="section-title">Pipeline de 8 Agentes</div>
+      <div class="section-subtitle">cada agente e especialista em uma tarefa</div>
+    </div>
+  </div>
+
+  <div class="pipeline-intro">
+    O pipeline e <strong>sequencial</strong> — cada agente recebe o output do anterior e passa pro proximo. Uma live de 2h47 entra como audio bruto e sai como 8 Shorts prontos com legendas, hashtags e publicacao automatica.
+  </div>
+
+  <!-- FLOW STEPS -->
+  <div class="flow-container">
+
+    <!-- 01 SEGMENTER -->
+    <div class="flow-step animate-in delay-1">
+      <div class="flow-line-col">
+        <div class="flow-number">01</div>
+      </div>
+      <div class="flow-content">
+        <div class="flow-name">Segmenter</div>
+        <div class="flow-role">Divide a live em blocos logicos</div>
+        <div class="flow-desc">
+          Recebe a <strong>transcricao completa</strong> da live e corta em blocos por topico. Identifica mudancas de assunto, pausas longas e transicoes naturais. Cada bloco fica com inicio, fim e resumo do que foi dito.
+        </div>
+        <div class="flow-tags">
+          <span class="flow-tag tag-cyan">TRANSCRICAO</span>
+          <span class="flow-tag tag-purple">HAIKU 3.5</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 ANALYST -->
+    <div class="flow-step animate-in delay-2">
+      <div class="flow-line-col">
+        <div class="flow-number">02</div>
+      </div>
+      <div class="flow-content">
+        <div class="flow-name">Analyst</div>
+        <div class="flow-role">Avalia potencial de viralidade</div>
+        <div class="flow-desc">
+          Analisa cada bloco e atribui um <strong>Virality Score (0-100)</strong>. Criterios: gancho nos primeiros 3 segundos, densidade informacional, apelo emocional, potencial de compartilhamento. Ranking dos melhores momentos.
+        </div>
+        <div class="flow-tags">
+          <span class="flow-tag tag-green">SCORING</span>
+          <span class="flow-tag tag-purple">SONNET 4</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 EDITOR -->
+    <div class="flow-step animate-in delay-3">
+      <div class="flow-line-col">
+        <div class="flow-number">03</div>
+      </div>
+      <div class="flow-content">
+        <div class="flow-name">Editor</div>
+        <div class="flow-role">Corta silencio e morto</div>
+        <div class="flow-desc">
+          Usa <strong>ffmpeg silencedetect</strong> pra remover pausas longas, hesitacoes e trechos sem valor. Mantém o ritmo acelerado tipo TikTok. Cada clip fica entre 30-90 segundos de conteudo puro.
+        </div>
+        <div class="flow-tags">
+          <span class="flow-tag tag-orange">FFMPEG</span>
+          <span class="flow-tag tag-yellow">SILENCEDETECT</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 DIRECTOR -->
+    <div class="flow-step animate-in delay-4">
+      <div class="flow-line-col">
+        <div class="flow-number">04</div>
+      </div>
+      <div class="flow-content">
+        <div class="flow-name">Director</div>
+        <div class="flow-role">Roteiriza as cenas</div>
+        <div class="flow-desc">
+          Define o <strong>roteiro visual</strong> de cada clip: quando mostrar talking head, quando mostrar tela, onde colocar zoom, cortes secos e transicoes. Gera um storyboard que o Renderer segue.
+        </div>
+        <div class="flow-tags">
+          <span class="flow-tag tag-pink">STORYBOARD</span>
+          <span class="flow-tag tag-purple">HAIKU 3.5</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 RENDERER -->
+    <div class="flow-step animate-in delay-5">
+      <div class="flow-line-col">
+        <div class="flow-number">05</div>
+      </div>
+      <div class="flow-content">
+        <div class="flow-name">Renderer</div>
+        <div class="flow-role">Motion design e composicao visual</div>
+        <div class="flow-desc">
+          Aplica o storyboard do Director: <strong>zoom automatico</strong> no rosto durante talking head, crop 9:16, motion graphics sutis. Renderiza via Remotion com qualidade de producao.
+        </div>
+        <div class="flow-tags">
+          <span class="flow-tag tag-red">REMOTION</span>
+          <span class="flow-tag tag-orange">FFMPEG</span>
+          <span class="flow-tag tag-blue">9:16</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 CAPTIONER -->
+    <div class="flow-step animate-in delay-6">
+      <div class="flow-line-col">
+        <div class="flow-number">06</div>
+      </div>
+      <div class="flow-content">
+        <div class="flow-name">Captioner</div>
+        <div class="flow-role">Legendas estilo TikTok</div>
+        <div class="flow-desc">
+          Gera legendas <strong>word-by-word sincronizadas</strong> com highlight na palavra ativa. Estilo TikTok/Hormozi — texto grande, centralizado, com sombra. Palavras-chave ficam em destaque colorido.
+        </div>
+        <div class="flow-tags">
+          <span class="flow-tag tag-yellow">WHISPER</span>
+          <span class="flow-tag tag-red">REMOTION</span>
+          <span class="flow-tag tag-cyan">SYNC</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 SCOUT -->
+    <div class="flow-step animate-in delay-7">
+      <div class="flow-line-col">
+        <div class="flow-number">07</div>
+      </div>
+      <div class="flow-content">
+        <div class="flow-name">Scout</div>
+        <div class="flow-role">Copy, titulo e hashtags</div>
+        <div class="flow-desc">
+          Escreve o <strong>titulo, descricao e hashtags</strong> otimizados pra cada plataforma (YT Shorts, IG Reels, TikTok). Cada um com copy diferente — o que funciona no YouTube nao funciona no TikTok.
+        </div>
+        <div class="flow-tags">
+          <span class="flow-tag tag-green">COPY</span>
+          <span class="flow-tag tag-purple">SONNET 4</span>
+          <span class="flow-tag tag-blue">MULTI-PLATFORM</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 08 COMPOSER -->
+    <div class="flow-step animate-in delay-8">
+      <div class="flow-line-col">
+        <div class="flow-number">08</div>
+      </div>
+      <div class="flow-content">
+        <div class="flow-name">Composer</div>
+        <div class="flow-role">Composicao final e publicacao</div>
+        <div class="flow-desc">
+          Junta tudo: video renderizado + legendas + metadata. Faz o <strong>upload automatico</strong> pro YouTube Shorts, Instagram Reels e TikTok. Cada clip sobe com titulo, descricao e hashtags da plataforma certa.
+        </div>
+        <div class="flow-tags">
+          <span class="flow-tag tag-green">YOUTUBE</span>
+          <span class="flow-tag tag-pink">INSTAGRAM</span>
+          <span class="flow-tag tag-cyan">TIKTOK</span>
+          <span class="flow-tag tag-red">R2 BACKUP</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TERMINAL DEMO -->
+  <div class="section-header">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+      <span class="pulse-dot"></span>
+    </div>
+    <div>
+      <div class="section-title">Terminal</div>
+      <div class="section-subtitle">output real de uma sessao</div>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot r"></span>
+      <span class="terminal-dot y"></span>
+      <span class="terminal-dot g"></span>
+      <span class="terminal-title">VIDEO-WORKER — PIPELINE SESSION</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="t-time">[21:30:01]</span> <span class="t-msg">Sessao iniciada para canal</span> <span class="t-data">@emailhackerai</span></div>
+      <div><span class="t-time">[21:30:02]</span> <span class="t-msg">Detectados</span> <span class="t-data">47 videos</span> <span class="t-msg">no canal</span></div>
+      <div><span class="t-time">[21:30:03]</span> <span class="t-msg">Ultimo upload:</span> <span class="t-dim">2h atras</span></div>
+      <div><span class="t-time">[21:30:04]</span> <span class="t-msg">Iniciando pipeline para</span> <span class="t-file">"Dia 10 | Vibe Coding Ate Vendermos R$1M"</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:30:05]</span> <span class="t-agent">[SEGMENTER]</span> <span class="t-msg">Transcrevendo audio...</span></div>
+      <div><span class="t-time">[21:30:45]</span> <span class="t-agent">[SEGMENTER]</span> <span class="t-data">12.847 palavras</span> <span class="t-msg">extraidas</span></div>
+      <div><span class="t-time">[21:30:46]</span> <span class="t-agent">[SEGMENTER]</span> <span class="t-msg">Dividindo em blocos logicos...</span></div>
+      <div><span class="t-time">[21:31:02]</span> <span class="t-agent">[SEGMENTER]</span> <span class="t-ok">&#10003;</span> <span class="t-data">23 blocos</span> <span class="t-msg">identificados</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:31:03]</span> <span class="t-agent">[ANALYST]</span> <span class="t-msg">Analisando potencial de viralidade...</span></div>
+      <div><span class="t-time">[21:31:18]</span> <span class="t-agent">[ANALYST]</span> <span class="t-msg">Bloco #7 "como automatizar email marketing"</span> <span class="t-ok">score: 91</span></div>
+      <div><span class="t-time">[21:31:19]</span> <span class="t-agent">[ANALYST]</span> <span class="t-msg">Bloco #3 "a verdade sobre open rate"</span> <span class="t-ok">score: 87</span></div>
+      <div><span class="t-time">[21:31:20]</span> <span class="t-agent">[ANALYST]</span> <span class="t-msg">Bloco #15 "quanto custa por email"</span> <span class="t-ok">score: 74</span></div>
+      <div><span class="t-time">[21:31:21]</span> <span class="t-agent">[ANALYST]</span> <span class="t-ok">&#10003;</span> <span class="t-msg">Top</span> <span class="t-data">8 clips</span> <span class="t-msg">selecionados</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:31:22]</span> <span class="t-agent">[EDITOR]</span> <span class="t-msg">Removendo silencio com ffmpeg...</span></div>
+      <div><span class="t-time">[21:32:10]</span> <span class="t-agent">[EDITOR]</span> <span class="t-ok">&#10003;</span> <span class="t-msg">Removidos</span> <span class="t-data">47s de silencio</span> <span class="t-msg">do clip #1</span></div>
+      <div><span class="t-time">[21:33:45]</span> <span class="t-agent">[EDITOR]</span> <span class="t-ok">&#10003;</span> <span class="t-data">8/8 clips</span> <span class="t-msg">editados</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:33:46]</span> <span class="t-agent">[DIRECTOR]</span> <span class="t-msg">Gerando storyboards...</span></div>
+      <div><span class="t-time">[21:34:12]</span> <span class="t-agent">[DIRECTOR]</span> <span class="t-ok">&#10003;</span> <span class="t-data">8 storyboards</span> <span class="t-msg">prontos</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:34:13]</span> <span class="t-agent">[RENDERER]</span> <span class="t-msg">Renderizando clip #1 via Remotion...</span></div>
+      <div><span class="t-time">[21:35:01]</span> <span class="t-agent">[RENDERER]</span> <span class="t-ok">&#10003;</span> <span class="t-file">clip-001-9x16.mp4</span> <span class="t-dim">(47s, 1080x1920)</span></div>
+      <div><span class="t-time">[21:38:20]</span> <span class="t-agent">[RENDERER]</span> <span class="t-ok">&#10003;</span> <span class="t-data">8/8</span> <span class="t-msg">renderizados</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:38:21]</span> <span class="t-agent">[CAPTIONER]</span> <span class="t-msg">Gerando legendas word-by-word...</span></div>
+      <div><span class="t-time">[21:39:44]</span> <span class="t-agent">[CAPTIONER]</span> <span class="t-ok">&#10003;</span> <span class="t-data">8/8</span> <span class="t-msg">legendados</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:39:45]</span> <span class="t-agent">[SCOUT]</span> <span class="t-msg">Escrevendo copy pra 3 plataformas...</span></div>
+      <div><span class="t-time">[21:40:02]</span> <span class="t-agent">[SCOUT]</span> <span class="t-ok">&#10003;</span> <span class="t-data">24 copys</span> <span class="t-msg">(8 clips x 3 plataformas)</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:40:03]</span> <span class="t-agent">[COMPOSER]</span> <span class="t-msg">Upload YT Shorts clip #1...</span></div>
+      <div><span class="t-time">[21:40:18]</span> <span class="t-agent">[COMPOSER]</span> <span class="t-ok">&#10003;</span> <span class="t-msg">YT Shorts</span> <span class="t-data">publicado</span></div>
+      <div><span class="t-time">[21:40:19]</span> <span class="t-agent">[COMPOSER]</span> <span class="t-msg">Upload IG Reels clip #1...</span></div>
+      <div><span class="t-time">[21:40:31]</span> <span class="t-agent">[COMPOSER]</span> <span class="t-ok">&#10003;</span> <span class="t-msg">IG Reels</span> <span class="t-data">publicado</span></div>
+      <div><span class="t-time">[21:42:50]</span> <span class="t-agent">[COMPOSER]</span> <span class="t-ok">&#10003;</span> <span class="t-data">8/8 clips</span> <span class="t-msg">publicados em 3 plataformas</span></div>
+      <div>&nbsp;</div>
+      <div><span class="t-time">[21:42:51]</span> <span class="t-ok">&#10003; SESSAO COMPLETA</span> <span class="t-dim">— 12m50s — 8 clips — R$0,88 total</span></div>
+      <div class="typing-cursor"></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- RESULT PREVIEW -->
+  <div class="section-header">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 8 6 4-6 4Z"/></svg>
+      <span class="pulse-dot"></span>
+    </div>
+    <div>
+      <div class="section-title">Output</div>
+      <div class="section-subtitle">exemplo de clips gerados</div>
+    </div>
+  </div>
+
+  <div class="result-grid">
+    <div class="result-card">
+      <div class="result-thumb">
+        <span class="score score-high">&#9733; 91</span>
+        <div class="play-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span class="duration">0:47</span>
+      </div>
+      <div class="result-info">
+        <div class="result-title">Como automatizar email marketing do zero</div>
+        <div class="result-source">Dia 10 | Vibe Coding</div>
+        <div class="result-platforms">
+          <span class="platform-icon platform-ok">YT</span>
+          <span class="platform-icon platform-ok">IG</span>
+          <span class="platform-icon platform-ok">TT</span>
+        </div>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="result-thumb">
+        <span class="score score-high">&#9733; 87</span>
+        <div class="play-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span class="duration">1:02</span>
+      </div>
+      <div class="result-info">
+        <div class="result-title">A verdade sobre open rate que ninguem conta</div>
+        <div class="result-source">Dia 10 | Vibe Coding</div>
+        <div class="result-platforms">
+          <span class="platform-icon platform-ok">YT</span>
+          <span class="platform-icon platform-ok">IG</span>
+          <span class="platform-icon platform-pending">TT</span>
+        </div>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="result-thumb">
+        <span class="score score-mid">&#9733; 74</span>
+        <div class="play-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span class="duration">0:38</span>
+      </div>
+      <div class="result-info">
+        <div class="result-title">Quanto custa enviar 1 email marketing</div>
+        <div class="result-source">Dia 10 | Vibe Coding</div>
+        <div class="result-platforms">
+          <span class="platform-icon platform-ok">YT</span>
+          <span class="platform-icon platform-pending">IG</span>
+          <span class="platform-icon platform-pending">TT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- BRIEFING -->
+  <div class="section-header">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838.838-2.872a2 2 0 0 1 .506-.855z"/></svg>
+      <span class="pulse-dot"></span>
+    </div>
+    <div>
+      <div class="section-title">Por Que Isso Importa</div>
+    </div>
+  </div>
+
+  <div class="briefing">
+    <div class="briefing-label">O problema</div>
+    <div class="briefing-text">
+      Uma live de 3 horas tem <strong>talvez 8 momentos incriveis</strong> — mas ninguem assiste 3 horas pra encontrar eles. O algoritmo do YouTube nao recomenda lives longas. O conteudo morre em 24 horas.
+    </div>
+  </div>
+
+  <div class="briefing">
+    <div class="briefing-label">A solucao</div>
+    <div class="briefing-text">
+      O Video Worker <strong>extrai os melhores momentos automaticamente</strong> e transforma em Shorts verticais — o formato que o algoritmo recomenda. Cada live vira 8 clips que continuam gerando views semanas depois.
+    </div>
+  </div>
+
+  <div class="briefing">
+    <div class="briefing-label">Numeros reais</div>
+    <div class="briefing-text">
+      <strong>R$0,11 por clip.</strong> 1 live = 8 clips = R$0,88. Cada clip demora ~4 minutos do zero ao publicado. Sem editor humano. Sem timeline. Sem esforco manual. Cole o link, aperte play, va dormir.
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TECH STACK -->
+  <div class="section-header">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      <span class="pulse-dot"></span>
+    </div>
+    <div>
+      <div class="section-title">Stack</div>
+      <div class="section-subtitle">tecnologias por baixo do capo</div>
+    </div>
+  </div>
+
+  <div class="stack-row">
+    <span class="stack-badge">Node.js 22</span>
+    <span class="stack-badge">BullMQ</span>
+    <span class="stack-badge">Redis</span>
+    <span class="stack-badge">ffmpeg</span>
+    <span class="stack-badge">Remotion 4.x</span>
+    <span class="stack-badge">Whisper API</span>
+    <span class="stack-badge">Claude Haiku 3.5</span>
+    <span class="stack-badge">Claude Sonnet 4</span>
+    <span class="stack-badge">Cloudflare R2</span>
+    <span class="stack-badge">YouTube API</span>
+    <span class="stack-badge">Instagram API</span>
+    <span class="stack-badge">PM2</span>
+    <span class="stack-badge">VPS KVM1 4GB</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <h2>Cole o link. Aperte play. Va dormir.</h2>
+    <p>Cada live que voce nao processa sao 8 Shorts que voce nao publicou.</p>
+    <a href="https://emailhacker.ai" class="cta-button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Ver o EmailHacker.ai
+    </a>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-text">
+      <a href="https://emailhacker.ai">EMAILHACKER.AI</a> &mdash; Vibe Coding Ate Vendermos R$1.000.000 por Email Marketing
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

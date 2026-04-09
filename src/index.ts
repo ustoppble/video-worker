@@ -1,7 +1,13 @@
 import { createServer, type IncomingMessage } from 'node:http'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { execFile } from 'node:child_process'
+import { existsSync, createReadStream, statSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs'
+import { resolve, basename } from 'node:path'
 import { config } from './config.js'
+
+// Pasta temporária pra servir vídeos (cleanup automático após 1h)
+const TMP_DIR = resolve(config.dataDir, 'tmp-serve')
+if (!existsSync(TMP_DIR)) mkdirSync(TMP_DIR, { recursive: true })
 
 let deploying = false
 
@@ -78,6 +84,48 @@ const server = createServer(async (req, res) => {
 
     res.writeHead(200)
     res.end('OK (ignorado)')
+    return
+  }
+
+  // Upload de vídeo temporário — POST /tmp/upload (body = raw MP4)
+  if (req.url === '/tmp/upload' && req.method === 'POST') {
+    const chunks: Buffer[] = []
+    req.on('data', (c) => chunks.push(c))
+    req.on('end', () => {
+      const data = Buffer.concat(chunks)
+      const filename = `${Date.now()}.mp4`
+      const filepath = resolve(TMP_DIR, filename)
+      writeFileSync(filepath, data)
+      console.log(`[tmp] Arquivo salvo: ${filename} (${(data.length / 1e6).toFixed(1)}MB)`)
+
+      // Auto-cleanup após 1h
+      setTimeout(() => {
+        try { unlinkSync(filepath) } catch {}
+        console.log(`[tmp] Cleanup: ${filename}`)
+      }, 3600_000)
+
+      const publicUrl = `http://76.13.227.187:${config.port}/tmp/${filename}`
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ url: publicUrl, filename, expiresIn: '1h' }))
+    })
+    return
+  }
+
+  // Servir arquivo temporário — GET /tmp/:filename
+  if (req.url?.startsWith('/tmp/') && req.method === 'GET') {
+    const filename = basename(req.url.replace('/tmp/', ''))
+    const filepath = resolve(TMP_DIR, filename)
+    if (!existsSync(filepath)) {
+      res.writeHead(404)
+      res.end('File not found')
+      return
+    }
+    const stat = statSync(filepath)
+    res.writeHead(200, {
+      'Content-Type': 'video/mp4',
+      'Content-Length': stat.size,
+    })
+    createReadStream(filepath).pipe(res)
     return
   }
 

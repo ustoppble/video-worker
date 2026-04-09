@@ -1,15 +1,24 @@
 #!/bin/bash
-# Auto-deploy: pull + build + restart PM2
-# Chamado pelo webhook do GitHub ou manualmente
-
 set -e
+
+echo "[deploy] Pulling latest..."
 cd /root/video-worker
+git pull origin main
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploy iniciado"
+echo "[deploy] Installing backend deps..."
+npm install --production
 
-git pull --ff-only origin main
-npm install --omit=dev --quiet
+echo "[deploy] Building backend..."
 npx tsc
-pm2 restart video-worker
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploy concluído"
+echo "[deploy] Installing frontend deps..."
+cd web && npm install --production
+
+echo "[deploy] Building frontend..."
+npx next build
+
+echo "[deploy] Restarting PM2..."
+cd /root/video-worker
+pm2 restart ecosystem.config.cjs
+
+echo "[deploy] Done!"

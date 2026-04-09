@@ -15,5 +15,8 @@
     "node": ">=22.0.0"
   },
   "author": "ustoppble",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "googleapis": "^171.4.0"
+  }
 }
