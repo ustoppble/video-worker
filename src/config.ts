@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 
 export const config = {
   port: Number(process.env.PORT || 3200),
+  webhookSecret: process.env.WEBHOOK_SECRET || '',
   redis: process.env.REDIS_URL || 'redis://localhost:6379',
   dataDir: process.env.DATA_DIR || resolve(process.cwd(), 'data'),
   cleanupAfterHours: Number(process.env.CLEANUP_AFTER_HOURS || 24),
