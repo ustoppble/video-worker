@@ -1,43 +1,149 @@
 #!/bin/bash
-# Setup da VPS para o Video Worker
+# =============================================================
+# Video Worker — Setup da VPS (KVM1: 1 vCPU, 4 GB RAM, 50 GB NVMe)
 # Rodar como root: bash scripts/setup.sh
+#
+# REGRAS:
+# - Tudo sequencial, nunca paralelo
+# - Respeitar limite de 4 GB RAM
+# - Swap obrigatório como segurança
+# - Redis com maxmemory 256mb
+# - Remotion com concurrency=1
+# - Cleanup automático após publicação
+# =============================================================
 
 set -e
 
-echo "=== Video Worker — Setup da VPS ==="
+echo "========================================"
+echo " Video Worker — Setup VPS (KVM1)"
+echo " 1 vCPU | 4 GB RAM | 50 GB NVMe"
+echo "========================================"
+echo ""
 
-# Node.js 22
-echo "[1/6] Instalando Node.js 22..."
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt-get install -y nodejs
+# ----------------------------------------------------------
+# 0. Swap (2 GB) — segurança contra OOM
+# ----------------------------------------------------------
+echo "[0/8] Criando swap de 2 GB..."
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  # Usar swap só quando necessário (não proativamente)
+  sysctl vm.swappiness=10
+  echo 'vm.swappiness=10' >> /etc/sysctl.conf
+  echo "  Swap ativo: 2 GB"
+else
+  echo "  Swap já existe, pulando"
+fi
 
-# ffmpeg
-echo "[2/6] Instalando ffmpeg..."
-apt-get install -y ffmpeg
+# ----------------------------------------------------------
+# 1. Atualizar sistema
+# ----------------------------------------------------------
+echo "[1/8] Atualizando sistema..."
+apt-get update -qq
+apt-get upgrade -y -qq
 
-# yt-dlp
-echo "[3/6] Instalando yt-dlp..."
-curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+# ----------------------------------------------------------
+# 2. Node.js 22 LTS
+# ----------------------------------------------------------
+echo "[2/8] Instalando Node.js 22..."
+if ! command -v node &> /dev/null; then
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  apt-get install -y -qq nodejs
+fi
+echo "  Node: $(node -v)"
+echo "  npm: $(npm -v)"
+
+# ----------------------------------------------------------
+# 3. ffmpeg
+# ----------------------------------------------------------
+echo "[3/8] Instalando ffmpeg..."
+apt-get install -y -qq ffmpeg
+echo "  ffmpeg: $(ffmpeg -version 2>&1 | head -1)"
+
+# ----------------------------------------------------------
+# 4. yt-dlp
+# ----------------------------------------------------------
+echo "[4/8] Instalando yt-dlp..."
+curl -sL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
 chmod a+rx /usr/local/bin/yt-dlp
+echo "  yt-dlp: $(yt-dlp --version)"
 
-# Redis
-echo "[4/6] Instalando Redis..."
-apt-get install -y redis-server
+# ----------------------------------------------------------
+# 5. Redis (com limite de memória)
+# ----------------------------------------------------------
+echo "[5/8] Instalando Redis..."
+apt-get install -y -qq redis-server
+
+# Limitar memória do Redis a 256 MB
+cat > /etc/redis/redis.conf.d/memory.conf 2>/dev/null <<REDIS_EOF || true
+maxmemory 256mb
+maxmemory-policy allkeys-lru
+REDIS_EOF
+
+# Se não suportar conf.d, editar direto
+if ! grep -q "maxmemory 256mb" /etc/redis/redis.conf; then
+  echo "maxmemory 256mb" >> /etc/redis/redis.conf
+  echo "maxmemory-policy allkeys-lru" >> /etc/redis/redis.conf
+fi
+
 systemctl enable redis-server
-systemctl start redis-server
+systemctl restart redis-server
+echo "  Redis: $(redis-cli INFO server 2>/dev/null | grep redis_version | tr -d '\r')"
 
-# Chromium (pra Remotion)
-echo "[5/6] Instalando Chromium..."
-apt-get install -y chromium-browser || apt-get install -y chromium
+# ----------------------------------------------------------
+# 6. Chromium (pra Remotion headless)
+# ----------------------------------------------------------
+echo "[6/8] Instalando Chromium + dependências..."
+apt-get install -y -qq \
+  chromium-browser 2>/dev/null || apt-get install -y -qq chromium 2>/dev/null || true
 
-# PM2
-echo "[6/6] Instalando PM2..."
-npm install -g pm2
+# Dependências que o Chromium/Puppeteer precisa
+apt-get install -y -qq \
+  libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+  libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+  libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
+  libasound2 libxshmfence1 2>/dev/null || true
 
-# Criar diretórios
+echo "  Chromium: $(chromium-browser --version 2>/dev/null || chromium --version 2>/dev/null || echo 'instalado')"
+
+# ----------------------------------------------------------
+# 7. PM2
+# ----------------------------------------------------------
+echo "[7/8] Instalando PM2..."
+npm install -g pm2 --quiet
+echo "  PM2: $(pm2 -v)"
+
+# ----------------------------------------------------------
+# 8. Diretórios e permissões
+# ----------------------------------------------------------
+echo "[8/8] Criando diretórios..."
 mkdir -p /data/video-worker/jobs
 mkdir -p /root/video-worker/logs
 
+# ----------------------------------------------------------
+# Resumo
+# ----------------------------------------------------------
 echo ""
-echo "=== Setup completo ==="
-echo "Próximo: git clone, npm install, configurar .env"
+echo "========================================"
+echo " Setup completo!"
+echo "========================================"
+echo ""
+echo " Memória:"
+echo "   RAM: $(free -h | awk '/Mem:/ {print $2}')"
+echo "   Swap: $(free -h | awk '/Swap:/ {print $2}')"
+echo "   Redis: 256 MB (limite)"
+echo ""
+echo " Disco:"
+echo "   $(df -h / | awk 'NR==2 {print $4 " livres de " $2}')"
+echo ""
+echo " Próximo:"
+echo "   cd /root"
+echo "   git clone https://github.com/ustoppble/video-worker.git"
+echo "   cd video-worker"
+echo "   npm install"
+echo "   cp .env.example .env  # preencher credenciais"
+echo "   pm2 start ecosystem.config.cjs"
+echo ""
